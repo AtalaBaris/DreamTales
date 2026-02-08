@@ -302,42 +302,41 @@ class _LoginPageState extends State<LoginPage> {
                   isLoading: _isLoading, // React'taki disabled={isLoading}
                 ),
 
-                // Kayıt ol linki
-                // React'taki <Link to="/register"> mantığına benzer
+                // Kayıt ol linki - sadece "Kayıt ol" tıklanabilir
                 const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () async {
-                    // Register sayfasına yönlendir ve result'ı bekle
-                    final result = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const RegisterPage(),
-                      ),
-                    );
-                    
-                    // Register sayfasından başarılı kayıt ile dönüldüyse form'u temizle
-                    if (result == true && mounted) {
-                      _resetForm();
-                    }
-                  },
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Hesabın yok mu?',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
+                        height: 1.5,
                       ),
-                      children: [
-                        const TextSpan(text: 'Hesabın yok mu? '),
-                        TextSpan(
-                          text: 'Kayıt Ol',
-                          style: TextStyle(
-                            color: AppColors.secondary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterPage(),
+                          ),
+                        );
+                        if (result == true && mounted) {
+                          _resetForm();
+                        }
+                      },
+                      child: Text(
+                        'Kayıt ol',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
