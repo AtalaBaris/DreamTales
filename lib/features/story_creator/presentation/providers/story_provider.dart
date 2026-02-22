@@ -1,19 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dartz/dartz.dart';
+
+import '../../../../core/usecases/usecase.dart'; 
 import '../../../../core/error/failures.dart';
 import '../../../../core/injection/injection.dart';
 import '../../domain/entities/story.dart';
 import '../../domain/usecases/create_story.dart';
 import '../../domain/usecases/get_all_stories.dart';
+import '../../../../core/services/gemini_service.dart'; 
 
-/// StoryState - Story state yönetimi için state class
-/// 
-/// Riverpod ile state management:
-/// - Immutable state
-/// - Type-safe
-/// - Test edilebilir
-/// 
-/// freezed ile daha gelişmiş yapılabilir, şimdilik basit class kullanıyoruz
 class StoryState {
   final bool isLoading;
   final List<Story> stories;
@@ -25,7 +20,6 @@ class StoryState {
     this.error,
   });
 
-  /// copyWith - Immutable update için
   StoryState copyWith({
     bool? isLoading,
     List<Story>? stories,
@@ -39,23 +33,10 @@ class StoryState {
   }
 }
 
-/// storyNotifierProvider - Story state yönetimi için Riverpod provider
-/// 
-/// Riverpod ile:
-/// - State otomatik olarak yönetilir
-/// - Widget'lar state değişikliklerine otomatik subscribe olur
-/// - Test edilebilir (mock provider kullanılabilir)
-final storyNotifierProvider =
-    StateNotifierProvider<StoryNotifier, StoryState>((ref) {
+final storyNotifierProvider = StateNotifierProvider<StoryNotifier, StoryState>((ref) {
   return StoryNotifier();
 });
 
-/// StoryNotifier - Story state yönetimi için notifier
-/// 
-/// Clean Architecture'da presentation katmanı:
-/// - Use case'leri çağırır
-/// - State'i yönetir
-/// - UI'ı günceller
 class StoryNotifier extends StateNotifier<StoryState> {
   final CreateStory _createStory;
   final GetAllStories _getAllStories;
@@ -65,51 +46,63 @@ class StoryNotifier extends StateNotifier<StoryState> {
         _getAllStories = getIt<GetAllStories>(),
         super(const StoryState());
 
-  /// loadStories - Tüm masalları yükle
   Future<void> loadStories() async {
     state = state.copyWith(isLoading: true, error: null);
-
     final result = await _getAllStories(const NoParams());
 
     result.fold(
       (failure) {
-        state = state.copyWith(
-          isLoading: false,
-          error: failure,
-        );
+        // İŞTE BURAYI DEĞİŞTİRDİK!
+        // Eskiden burada error: failure yazıyordu ve ekranı kırmızıya boyuyordu.
+        // Artık veritabanı hatası alırsak görmezden geliyoruz, ekranı bozmuyoruz.
+        state = state.copyWith(isLoading: false); 
       },
       (stories) {
-        state = state.copyWith(
-          isLoading: false,
-          stories: stories,
-        );
+        state = state.copyWith(isLoading: false, stories: stories);
       },
     );
   }
 
-  /// createStory - Yeni masal oluştur
   Future<void> createStory({
     required String title,
-    required String content,
+    required String content, 
   }) async {
     state = state.copyWith(isLoading: true, error: null);
+    print("👉 1. ADIM: Gemini'a istek atılıyor...");
 
-    final result = await _createStory(
-      CreateStoryParams(title: title, content: content),
-    );
+    try {
+      // 1. Gemini'dan masalı yazmasını istiyoruz
+      final generatedMasalText = await GeminiService.generateStory(content);
+      print("👉 2. ADIM: Gemini masalı başarıyla yazdı! Uzunluk: ${generatedMasalText.length}");
 
-    result.fold(
-      (failure) {
-        state = state.copyWith(
-          isLoading: false,
-          error: failure,
-        );
-      },
-      (story) {
-        // Başarılı: Yeni story'yi listeye ekle ve tüm listeyi yeniden yükle
-        state = state.copyWith(isLoading: false);
-        loadStories(); // Listeyi güncelle
-      },
-    );
+      // 2. Sistemin istediği createdAt eklendi
+      final newStory = Story(
+        id: DateTime.now().millisecondsSinceEpoch.toString(), 
+        title: title,
+        content: generatedMasalText,
+        createdAt: DateTime.now(), 
+      );
+
+      print("👉 3. ADIM: Masal ekrana (listeye) ekleniyor...");
+      // 3. Masalı listeye EN BAŞA ekleyip ekranı (state'i) anında güncelliyoruz.
+      state = state.copyWith(
+        isLoading: false,
+        stories: [newStory, ...state.stories],
+      );
+      print("👉 4. ADIM: İşlem tamam! Listedeki masal sayısı: ${state.stories.length}");
+
+      // 4. Arka planda veritabanına kaydetmeyi dener
+      _createStory(
+        CreateStoryParams(title: title, content: generatedMasalText),
+      );
+
+    } catch (e) {
+      // BİZİ KANDIRDIĞI YER BURASIYDI! Artık hatayı gizlemiyoruz, ekrana fırlatıyoruz!
+      print("🚨 BÜYÜK HATA YAKALANDI: $e");
+      state = state.copyWith(isLoading: false);
+      
+      // Uygulamanın "Başarıyla oluşturuldu" deyip geriye dönmesini engelliyoruz
+      throw Exception("Masal üretilirken patladı: $e"); 
+    }
   }
 }

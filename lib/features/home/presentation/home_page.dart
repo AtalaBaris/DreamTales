@@ -1,63 +1,80 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/main_bottom_nav_bar.dart';
 import 'pages/story_detail_page.dart';
 
-class HomePage extends StatefulWidget {
+// Garanti Import Yolları (Kırmızı yanmaları önler)
+import 'package:dream_tales/features/story_creator/presentation/pages/story_creator_page.dart';
+import 'package:dream_tales/features/story_creator/presentation/providers/story_provider.dart';
+import 'package:dream_tales/features/profile/presentation/pages/profile_page.dart';
+
+// Premium State Provider'ımız
+import 'package:dream_tales/core/providers/premium_provider.dart';
+
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  /// 0: Profil, 1: Ayarlar, 2: Anasayfa
-  int _navIndex = 2;
+class _HomePageState extends ConsumerState<HomePage> {
+  int _navIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(storyNotifierProvider.notifier).loadStories();
+    });
+  }
+
+  // --- MASAL VERİLERİ ---
   static const List<Map<String, String>> _readyTales = [
     {
       'title': 'Kırmızı Başlıklı Kız',
-      'imageUrl': 'https://picsum.photos/seed/1/400/300',
+      'imageUrl': 'https://picsum.photos/seed/1/400/500', 
       'content': _kirmiziBaslikliKizContent,
     },
     {
       'title': 'Pamuk Prenses',
-      'imageUrl': 'https://picsum.photos/seed/2/400/300',
+      'imageUrl': 'https://picsum.photos/seed/2/400/500',
       'content': _pamukPrensesContent,
     },
     {
       'title': 'Üç Küçük Domuz',
-      'imageUrl': 'https://picsum.photos/seed/3/400/300',
+      'imageUrl': 'https://picsum.photos/seed/3/400/500',
       'content': _ucKucukDomuzContent,
     },
     {
       'title': 'Altın Saçlı Kız',
-      'imageUrl': 'https://picsum.photos/seed/4/400/300',
+      'imageUrl': 'https://picsum.photos/seed/4/400/500',
       'content': _altinSacliKizContent,
     },
     {
       'title': 'Uyuyan Güzel',
-      'imageUrl': 'https://picsum.photos/seed/5/400/300',
+      'imageUrl': 'https://picsum.photos/seed/5/400/500',
       'content': _uyuyanGuzelContent,
     },
     {
       'title': 'Kurbağa Prens',
-      'imageUrl': 'https://picsum.photos/seed/6/400/300',
+      'imageUrl': 'https://picsum.photos/seed/6/400/500',
       'content': _kurbagaPrensContent,
     },
     {
       'title': 'Hansel ve Gretel',
-      'imageUrl': 'https://picsum.photos/seed/7/400/300',
+      'imageUrl': 'https://picsum.photos/seed/7/400/500',
       'content': _hanselVeGretelContent,
     },
     {
       'title': 'Çirkin Ördek Yavrusu',
-      'imageUrl': 'https://picsum.photos/seed/8/400/300',
+      'imageUrl': 'https://picsum.photos/seed/8/400/500',
       'content': _cirkinOrdekYavrusuContent,
     },
   ];
 
-  // Masal içerikleri
   static const String _kirmiziBaslikliKizContent = '''
 Bir zamanlar, ormanın kenarında küçük bir kulübede yaşayan bir kız vardı. Herkes ona "Kırmızı Başlıklı Kız" derdi çünkü büyükannesi ona kırmızı bir başlık hediye etmişti ve o başlığı hiç çıkarmazdı.
 
@@ -138,99 +155,270 @@ Artık çirkin bir ördek yavrusu değil, güzel bir kuğuydu! Diğer kuğular o
 
   @override
   Widget build(BuildContext context) {
+    final storyState = ref.watch(storyNotifierProvider);
+    final aiStories = storyState.stories; 
+    final totalItemCount = aiStories.length + _readyTales.length;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Başlık
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-              child: Text(
-                'Hazır masallar',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  letterSpacing: 0.5,
-                ),
+      extendBody: true,
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFE0C3FC), Color(0xFF8EC5FC), Color(0xFFC2E9FB), Color(0xFFFEE140)],
+                stops: [0.0, 0.4, 0.7, 1.0],
               ),
             ),
-            // Grid kartlar
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.75,
+          ),
+          Positioned(top: -100, right: -100, child: _buildBlurShape(const Color(0xFF9A67EA).withOpacity(0.4))),
+          Positioned(bottom: -150, left: -150, child: _buildBlurShape(const Color(0xFF65C7F7).withOpacity(0.4))),
+
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Hoş Geldin,', style: GoogleFonts.poppins(fontSize: 16, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w500)),
+                        Text('Masal Dünyası ✨', style: GoogleFonts.poppins(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black.withOpacity(0.1), offset: const Offset(0, 2), blurRadius: 4)])),
+                      ],
+                    ),
                   ),
-                  itemCount: _readyTales.length,
-                  itemBuilder: (context, index) {
-                    final tale = _readyTales[index];
-                    return _TaleCard(
-                      title: tale['title']!,
-                      imageUrl: tale['imageUrl']!,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => StoryDetailPage(
-                              title: tale['title']!,
-                              imageUrl: tale['imageUrl']!,
-                              content: tale['content']!,
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
                 ),
-              ),
+
+                if (storyState.isLoading && aiStories.isEmpty)
+                   const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator(color: Colors.white)))
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    sliver: SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2, mainAxisSpacing: 20, crossAxisSpacing: 20, childAspectRatio: 0.7,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          String title;
+                          String imageUrl;
+                          String content;
+
+                          if (index < aiStories.length) {
+                            final story = aiStories[index];
+                            title = story.title;
+                            content = story.content;
+                            imageUrl = 'https://picsum.photos/seed/${story.title.hashCode}/400/500'; 
+                          } else {
+                            final int taleIndex = (index - aiStories.length).toInt(); 
+                            final tale = _readyTales[taleIndex];
+                            title = tale['title']!;
+                            imageUrl = tale['imageUrl']!;
+                            content = tale['content']!;
+                          }
+
+                          return _ModernGlassCard(
+                            title: title,
+                            imageUrl: imageUrl,
+                            onTap: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => StoryDetailPage(title: title, imageUrl: imageUrl, content: content),
+                              ));
+                            },
+                          );
+                        },
+                        childCount: totalItemCount,
+                      ),
+                    ),
+                  ),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)), 
+              ],
             ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _buildModernBottomNav(context),
+    );
+  }
+
+  Widget _buildBlurShape(Color color) {
+    return Container(
+      width: 300, height: 300,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100), child: Container(color: Colors.transparent)),
+    );
+  }
+
+  // --- İŞTE DÜZELTİLEN ALT MENÜ KISMI ---
+  Widget _buildModernBottomNav(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(0, Icons.home_rounded, 'Anasayfa'),
+                
+                // ORTADAKİ SİHİRLİ BUTON (Paywall kontrollü)
+                GestureDetector(
+                  onTap: () {
+                    final isPro = ref.read(premiumProvider); 
+                    if (isPro) {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StoryCreatorPage()));
+                    } else {
+                      _showPaywall(context, ref); 
+                    }
+                  },
+                  child: Container(
+                    height: 54, width: 54,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(colors: [Color(0xFF9A67EA), Color(0xFF65C7F7)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      boxShadow: [BoxShadow(color: const Color(0xFF9A67EA).withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))],
+                    ),
+                    child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+                  ),
+                ),
+                
+                // PROFİL BUTONU (Çakışma çözüldü, direkt yönlendirme eklendi!)
+                _buildNavItem(
+                  1, 
+                  Icons.person_rounded, 
+                  'Profil',
+                  onTapOverride: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfilePage()));
+                  }
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // YENİ: İçeriye 'onTapOverride' adında özel bir emir komutu ekledik
+  Widget _buildNavItem(int index, IconData icon, String label, {VoidCallback? onTapOverride}) {
+    final isSelected = _navIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _navIndex = index);
+        // Eğer dışarıdan "Şu sayfaya git" emri (onTapOverride) gelmişse onu çalıştır!
+        if (onTapOverride != null) {
+          onTapOverride();
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: isSelected ? BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)) : null,
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? Colors.white : Colors.white.withOpacity(0.6), size: 26),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(label, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+            ],
           ],
         ),
       ),
-      bottomNavigationBar: MainBottomNavBar(
-        currentIndex: _navIndex,
-        onTap: (index) {
-          setState(() => _navIndex = index);
-          if (index == 0) {
-            // TODO: Profil sayfasına yönlendir
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profil yakında')),
-            );
-          } else if (index == 1) {
-            // TODO: Ayarlar sayfasına yönlendir
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Ayarlar yakında')),
-            );
-          }
-          // index == 2: Anasayfa, zaten buradayız
-        },
+    );
+  }
+
+  // --- ÖDEME DUVARI (PAYWALL) TASARIMI ---
+  void _showPaywall(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E2C),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 30),
+                const Icon(Icons.auto_awesome, color: Color(0xFFFEE140), size: 60),
+                const SizedBox(height: 16),
+                Text('Sınırları Kaldırın', style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 10),
+                Text(
+                  'Gemini Yapay Zeka ile çocuklarınız için her gün yepyeni, sınırsız ve özelleştirilmiş masallar üretmek için PRO sürümüne geçin.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withOpacity(0.7)),
+                ),
+                const SizedBox(height: 30),
+                _buildPaywallFeature(Icons.check_circle, 'Sınırsız Masal Üretimi'),
+                _buildPaywallFeature(Icons.check_circle, 'Kendi Karakterlerinizi Yaratın'),
+                _buildPaywallFeature(Icons.check_circle, 'Reklamsız Deneyim'),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      ref.read(premiumProvider.notifier).setPremium(true);
+                      Navigator.pop(context);
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StoryCreatorPage()));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9A67EA),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text('PRO\'ya Geç - ₺49,99/Ay', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Belki Daha Sonra', style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withOpacity(0.5))),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPaywallFeature(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF65C7F7), size: 20),
+          const SizedBox(width: 12),
+          Text(text, style: GoogleFonts.poppins(fontSize: 14, color: Colors.white)),
+        ],
       ),
-      floatingActionButton: MainMagicFab(
-        onPressed: () {
-          // TODO: Masal oluşturma ekranına yönlendir
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Masal oluştur yakında')),
-          );
-        },
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }
 
-class _TaleCard extends StatelessWidget {
-  const _TaleCard({
-    required this.title,
-    required this.imageUrl,
-    required this.onTap,
-  });
-
+class _ModernGlassCard extends StatelessWidget {
+  const _ModernGlassCard({required this.title, required this.imageUrl, required this.onTap});
   final String title;
   final String imageUrl;
   final VoidCallback onTap;
@@ -239,61 +427,59 @@ class _TaleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Arka plan görseli - kartın tamamını kaplar
-            Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: AppColors.surface,
-                child: Icon(
-                  Icons.image_not_supported_rounded,
-                  size: 48,
-                  color: AppColors.textTertiary,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          color: Colors.white.withOpacity(0.1),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 10))],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                imageUrl, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.white.withOpacity(0.2),
+                  child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 40),
                 ),
               ),
-            ),
-            // Alt gradient - başlığın okunabilir olması için
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                height: 80,
+              Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.85),
-                    ],
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.5)],
+                    stops: const [0.0, 0.6, 1.0],
                   ),
                 ),
               ),
-            ),
-            // Başlık
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                  height: 1.3,
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.3), width: 1)),
+                      ),
+                      child: Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, height: 1.2,
+                          shadows: [Shadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
+                        ),
+                        maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

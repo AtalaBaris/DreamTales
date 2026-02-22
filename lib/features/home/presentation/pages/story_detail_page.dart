@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/injection/injection.dart';
 import '../../../audio_player/domain/services/text_to_speech_service.dart';
 
-/// Masal detay sayfası - Tam sayfa görünüm
+/// Masal detay sayfası - Hem Sesli Okuma Hem Modern Tasarım!
 class StoryDetailPage extends StatefulWidget {
   const StoryDetailPage({
     super.key,
@@ -26,10 +27,9 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
   StreamSubscription<TtsState>? _stateSubscription;
   
   bool _isPlaying = false;
-  double _playbackSpeed = 1.0; // Slider değeri: 1.0x = normal hız
+  double _playbackSpeed = 1.0; 
   String _selectedVoice = 'Kadın';
 
-  /// Cümle cümle seslendirme için
   List<String> _sentences = [];
   int _currentReadingIndex = -1;
   bool _userStopped = false;
@@ -41,23 +41,19 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
     _ttsService = getIt<TextToSpeechService>();
     _sentences = _splitIntoSentences(widget.content);
     
-    // TTS state'i dinle
     _stateSubscription = _ttsService.stateStream.listen((state) {
       if (!mounted) return;
       setState(() {
         _isPlaying = state == TtsState.playing;
       });
-      // Cümle bittiğinde sıradaki cümleyi oku (kullanıcı durdurmadıysa)
       if (state == TtsState.stopped && _sentenceBySentence && !_userStopped && mounted) {
         _playNextSentence();
       }
     });
 
-    // İlk hız ayarını yap: slider 1.0x -> flutter_tts 0.5 (normal hız)
     _updateSpeechRate(_playbackSpeed);
   }
 
-  /// Metni cümlelere böl (. ! ? sonrası boşluk veya satır sonu)
   static List<String> _splitIntoSentences(String text) {
     if (text.trim().isEmpty) return [];
     final trimmed = text.trim();
@@ -66,7 +62,6 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
     return list.isEmpty ? [trimmed] : list;
   }
 
-  /// Sıradaki cümleyi seslendir
   Future<void> _playNextSentence() async {
     if (!mounted) return;
     _currentReadingIndex++;
@@ -81,13 +76,10 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
     await _ttsService.speak(_sentences[_currentReadingIndex]);
   }
 
-  /// Slider değerini (0.5-2.0) flutter_tts rate'e (0.25-1.0) çevir
-  /// 0.5x -> 0.25, 1.0x -> 0.5, 2.0x -> 1.0
   Future<void> _updateSpeechRate(double sliderValue) async {
-    final mappedRate = sliderValue * 0.5; // 0.5x-2.0x -> 0.25-1.0
+    final mappedRate = sliderValue * 0.5; 
     await _ttsService.setSpeechRate(mappedRate.clamp(0.25, 1.0));
     
-    // Eğer oynatılıyorsa, hız değişikliğinin uygulanması için durdurup tekrar başlat
     if (_isPlaying && _ttsService.currentState == TtsState.playing) {
       await _ttsService.stop();
       _userStopped = true;
@@ -112,12 +104,10 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
     } else {
       _userStopped = false;
       if (_ttsService.currentState == TtsState.paused) {
-        // Duraklatılmıştı, aynı cümleden devam et
         if (_currentReadingIndex >= 0 && _currentReadingIndex < _sentences.length) {
           await _ttsService.speak(_sentences[_currentReadingIndex]);
         }
       } else {
-        // Durdurulmuştu, cümle cümle baştan başlat
         _sentenceBySentence = true;
         _currentReadingIndex = -1;
         _playNextSentence();
@@ -126,29 +116,24 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
   }
 
   Future<void> _handleSpeedChanged(double speed) async {
-    // Değeri 0.1x adımlarla yuvarla (örn: 1.77 -> 1.8)
     final roundedSpeed = (speed * 10).round() / 10.0;
     setState(() => _playbackSpeed = roundedSpeed);
-    // Hız değişikliğini uygula (oynatma sırasında da çalışır)
     await _updateSpeechRate(roundedSpeed);
   }
 
   Future<void> _handleVoiceChanged(String voice) async {
     setState(() => _selectedVoice = voice);
-    // Ses tonu değişikliği için pitch ayarı
-    // Kadın: 1.3 (daha yüksek), Erkek: 0.6 (daha alçak - daha erkek gibi)
     double pitch = 1.0;
     switch (voice) {
       case 'Kadın':
         pitch = 1.3;
         break;
       case 'Erkek':
-        pitch = 0.6; // Daha düşük pitch = daha erkek sesi
+        pitch = 0.6; 
         break;
     }
     await _ttsService.setPitch(pitch);
     
-    // Eğer oynatılıyorsa, ses tonu değişikliğinin uygulanması için durdurup tekrar başlat
     if (_isPlaying && _ttsService.currentState == TtsState.playing) {
       await _ttsService.stop();
       _userStopped = true;
@@ -163,74 +148,161 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8F9FA), // Göz yormayan uçuk gece arka planı
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          // Üstte görsel - AppBar ile birlikte
+          // 1. BÜYÜLÜ KAPAK FOTOĞRAFI (Kaydırdıkça esner)
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: 350.0,
+            stretch: true,
             pinned: true,
-            backgroundColor: AppColors.surface,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-              onPressed: () {
-                _userStopped = true;
-                _ttsService.stop();
-                Navigator.of(context).pop();
-              },
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Image.network(
-                widget.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: AppColors.surface,
-                  child: Icon(
-                    Icons.image_not_supported_rounded,
-                    size: 64,
-                    color: AppColors.textTertiary,
-                  ),
+            backgroundColor: const Color(0xFF9A67EA), 
+            elevation: 0,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  onPressed: () {
+                    _userStopped = true;
+                    _ttsService.stop();
+                    Navigator.pop(context);
+                  },
                 ),
               ),
-              title: Text(
-                widget.title,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black54,
-                      blurRadius: 8,
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              stretchModes: const [StretchMode.zoomBackground],
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    widget.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => 
+                        Container(color: Colors.grey[300], child: const Icon(Icons.image_not_supported)),
+                  ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black87],
+                        stops: [0.6, 1.0],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-          // İçerik
+
+          // 2. MASAL İÇERİĞİ (Kitap sayfası hissi veren yuvarlak kağıt tasarımı)
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Dinleme kontrolleri
-                  _AudioControls(
-                    isPlaying: _isPlaying,
-                    playbackSpeed: _playbackSpeed,
-                    selectedVoice: _selectedVoice,
-                    onPlayPause: _handlePlayPause,
-                    onSpeedChanged: _handleSpeedChanged,
-                    onVoiceChanged: _handleVoiceChanged,
+            child: Transform.translate(
+              offset: const Offset(0, -40), 
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -10))
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 40), 
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Başlık
+                      Text(
+                        widget.title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF2D3142),
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Etiketler
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE0C3FC).withOpacity(0.4),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.auto_awesome, size: 18, color: Color(0xFF9A67EA)),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Gemini AI',
+                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF9A67EA)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC2E9FB).withOpacity(0.4),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.nightlight_round, size: 16, color: Color(0xFF4A90E2)),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Uyku Masalı',
+                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4A90E2)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                      
+                      // Senin o şahane Sesli Okuma Kontrol Panelin
+                      _AudioControls(
+                        isPlaying: _isPlaying,
+                        playbackSpeed: _playbackSpeed,
+                        selectedVoice: _selectedVoice,
+                        onPlayPause: _handlePlayPause,
+                        onSpeedChanged: _handleSpeedChanged,
+                        onVoiceChanged: _handleVoiceChanged,
+                      ),
+                      const SizedBox(height: 30),
+
+                      // Ayırıcı tatlı bir çizgi
+                      Center(
+                        child: Container(
+                          width: 60, height: 4,
+                          decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2)),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      // Masal Metni (Senin o efsane cümle vurgulayıcı sistemin)
+                      _HighlightedStoryText(
+                        sentences: _sentences,
+                        currentReadingIndex: _currentReadingIndex,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                  // Masal metni - cümle cümle, okunan cümle vurgulu (smooth renk geçişi)
-                  _HighlightedStoryText(
-                    sentences: _sentences,
-                    currentReadingIndex: _currentReadingIndex,
-                  ),
-                  const SizedBox(height: 40),
-                ],
+                ),
               ),
             ),
           ),
@@ -253,15 +325,7 @@ class _HighlightedStoryText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (sentences.isEmpty) {
-      return const Text(
-        '',
-        style: TextStyle(
-          fontSize: 17,
-          height: 1.7,
-          color: AppColors.textPrimary,
-          letterSpacing: 0.3,
-        ),
-      );
+      return const Text('');
     }
     return Wrap(
       spacing: 0,
@@ -273,12 +337,12 @@ class _HighlightedStoryText extends StatelessWidget {
         return AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 350),
           curve: Curves.easeInOut,
-          style: TextStyle(
-            fontSize: 17,
-            height: 1.7,
-            color: isReading ? AppColors.secondary : AppColors.textPrimary,
-            letterSpacing: 0.3,
-            fontWeight: isReading ? FontWeight.w600 : FontWeight.normal,
+          // Nunito fontu ile harika bir e-kitap deneyimi
+          style: GoogleFonts.nunito(
+            fontSize: 19,
+            height: 1.8,
+            color: isReading ? const Color(0xFF9A67EA) : const Color(0xFF4F5D75),
+            fontWeight: isReading ? FontWeight.w800 : FontWeight.w600,
           ),
           child: Text(sentence + (index < sentences.length - 1 ? ' ' : '')),
         );
@@ -287,6 +351,7 @@ class _HighlightedStoryText extends StatelessWidget {
   }
 }
 
+/// Sesli okuma kontrol paneli (Sınıf aynı kaldı, tasarıma uyması için renkleri güncellendi)
 class _AudioControls extends StatelessWidget {
   const _AudioControls({
     required this.isPlaying,
@@ -309,8 +374,9 @@ class _AudioControls extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -323,20 +389,16 @@ class _AudioControls extends StatelessWidget {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
+                  gradient: const LinearGradient(colors: [Color(0xFF9A67EA), Color(0xFF65C7F7)]),
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(
-                      color: AppColors.secondary.withOpacity(0.4),
-                      blurRadius: 16,
-                      spreadRadius: 2,
-                    ),
+                    BoxShadow(color: const Color(0xFF9A67EA).withOpacity(0.4), blurRadius: 16, spreadRadius: 2),
                   ],
                 ),
                 child: Icon(
                   isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   size: 36,
-                  color: AppColors.background,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -345,25 +407,11 @@ class _AudioControls extends StatelessWidget {
           // Ses hızı ayarı
           Row(
             children: [
-              const Icon(Icons.speed_rounded, size: 20, color: AppColors.textSecondary),
+              const Icon(Icons.speed_rounded, size: 20, color: Colors.grey),
               const SizedBox(width: 8),
-              Text(
-                'Hız',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text('Hız', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
               const Spacer(),
-              Text(
-                '${playbackSpeed.toStringAsFixed(1)}x',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text('${playbackSpeed.toStringAsFixed(1)}x', style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF2D3142), fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 8),
@@ -371,40 +419,27 @@ class _AudioControls extends StatelessWidget {
             value: playbackSpeed,
             min: 0.5,
             max: 2.0,
-            divisions: 15, // Daha hassas ayar için (0.1x adımlarla)
-            activeColor: AppColors.secondary,
-            inactiveColor: AppColors.textTertiary,
+            divisions: 15, 
+            activeColor: const Color(0xFF65C7F7),
+            inactiveColor: Colors.grey.shade300,
             onChanged: onSpeedChanged,
           ),
           const SizedBox(height: 20),
           // Ses tonu seçimi
           Row(
             children: [
-              const Icon(Icons.record_voice_over_rounded, size: 20, color: AppColors.textSecondary),
+              const Icon(Icons.record_voice_over_rounded, size: 20, color: Colors.grey),
               const SizedBox(width: 8),
-              Text(
-                'Ses Tonu',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text('Ses Tonu', style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
               const Spacer(),
               DropdownButton<String>(
                 value: selectedVoice,
-                dropdownColor: AppColors.surface,
+                dropdownColor: Colors.white,
                 underline: Container(),
-                icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.textSecondary),
+                icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.grey),
                 items: const [
-                  DropdownMenuItem(
-                    value: 'Kadın',
-                    child: Text('Kadın', style: TextStyle(color: AppColors.textPrimary)),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Erkek',
-                    child: Text('Erkek', style: TextStyle(color: AppColors.textPrimary)),
-                  ),
+                  DropdownMenuItem(value: 'Kadın', child: Text('Kadın', style: TextStyle(color: Color(0xFF2D3142)))),
+                  DropdownMenuItem(value: 'Erkek', child: Text('Erkek', style: TextStyle(color: Color(0xFF2D3142)))),
                 ],
                 onChanged: (value) {
                   if (value != null) onVoiceChanged(value);
