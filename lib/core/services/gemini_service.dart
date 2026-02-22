@@ -1,18 +1,20 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // YENİ: Kasayı açmak için gereken paket
 
 class GeminiService {
-  
-  static const String _apiKey = 'AIzaSyD67-bm1M49AOR4KW0KkY3RLMx7KyA4PPI'; 
+  // ESKİDEN BURADA OLAN GİZLİ ANAHTARI TAMAMEN SİLDİK!
 
   static Future<String> generateStory(String prompt) async {
-    if (_apiKey.isEmpty) {
-      throw Exception('API anahtarı bulunamadı!');
+    // YENİ: Anahtarı koddan değil, .env dosyasından çekiyoruz
+    final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+
+    if (apiKey.isEmpty) {
+      throw Exception('API anahtarı bulunamadı! Lütfen .env dosyanızı kontrol edin.');
     }
 
-  
     final model = GenerativeModel(
       model: 'gemini-2.5-flash', 
-      apiKey: _apiKey,
+      apiKey: apiKey,
     );
 
     try {
