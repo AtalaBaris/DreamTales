@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/injection/injection.dart';
 import '../../../audio_player/domain/services/text_to_speech_service.dart';
 
@@ -181,12 +180,17 @@ class _StoryDetailPageState extends State<StoryDetailPage> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    widget.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => 
-                        Container(color: Colors.grey[300], child: const Icon(Icons.image_not_supported)),
-                  ),
+                  widget.imageUrl.startsWith('assets/')
+                      ? Image.asset(
+                          widget.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(color: Colors.grey[300], child: const Icon(Icons.image_not_supported)),
+                        )
+                      : Image.network(
+                          widget.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(color: Colors.grey[300], child: const Icon(Icons.image_not_supported)),
+                        ),
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(

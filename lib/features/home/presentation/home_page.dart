@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_colors.dart';
 import 'pages/story_detail_page.dart';
 
 // Garanti Import Yolları (Kırmızı yanmaları önler)
@@ -32,45 +31,46 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // --- MASAL VERİLERİ ---
+  // Görseller: proje içinde assets/images/tales/ klasörüne koy (README'deki dosya adları)
   static const List<Map<String, String>> _readyTales = [
     {
       'title': 'Kırmızı Başlıklı Kız',
-      'imageUrl': 'https://picsum.photos/seed/1/400/500', 
+      'imageUrl': 'assets/images/tales/01_kirmizi_baslikli.jpg',
       'content': _kirmiziBaslikliKizContent,
     },
     {
       'title': 'Pamuk Prenses',
-      'imageUrl': 'https://picsum.photos/seed/2/400/500',
+      'imageUrl': 'assets/images/tales/02_pamuk_prenses.jpg',
       'content': _pamukPrensesContent,
     },
     {
       'title': 'Üç Küçük Domuz',
-      'imageUrl': 'https://picsum.photos/seed/3/400/500',
+      'imageUrl': 'assets/images/tales/03_uc_kucuk_domuz.jpg',
       'content': _ucKucukDomuzContent,
     },
     {
       'title': 'Altın Saçlı Kız',
-      'imageUrl': 'https://picsum.photos/seed/4/400/500',
+      'imageUrl': 'assets/images/tales/04_altin_sacli_kiz.jpg',
       'content': _altinSacliKizContent,
     },
     {
       'title': 'Uyuyan Güzel',
-      'imageUrl': 'https://picsum.photos/seed/5/400/500',
+      'imageUrl': 'assets/images/tales/05_uyuyan_guzel.jpg',
       'content': _uyuyanGuzelContent,
     },
     {
       'title': 'Kurbağa Prens',
-      'imageUrl': 'https://picsum.photos/seed/6/400/500',
+      'imageUrl': 'assets/images/tales/06_kurbaga_prens.jpg',
       'content': _kurbagaPrensContent,
     },
     {
       'title': 'Hansel ve Gretel',
-      'imageUrl': 'https://picsum.photos/seed/7/400/500',
+      'imageUrl': 'assets/images/tales/07_hansel_ve_gretel.jpg',
       'content': _hanselVeGretelContent,
     },
     {
       'title': 'Çirkin Ördek Yavrusu',
-      'imageUrl': 'https://picsum.photos/seed/8/400/500',
+      'imageUrl': 'assets/images/tales/08_cirkin_ordek_yavrusu.jpg',
       'content': _cirkinOrdekYavrusuContent,
     },
   ];
@@ -423,6 +423,28 @@ class _ModernGlassCard extends StatelessWidget {
   final String imageUrl;
   final VoidCallback onTap;
 
+  Widget _buildCardImage(String url) {
+    final isAsset = url.startsWith('assets/');
+    if (isAsset) {
+      return Image.asset(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: Colors.white.withOpacity(0.2),
+          child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 40),
+        ),
+      );
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        color: Colors.white.withOpacity(0.2),
+        child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 40),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -439,13 +461,7 @@ class _ModernGlassCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                imageUrl, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.white.withOpacity(0.2),
-                  child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 40),
-                ),
-              ),
+              _buildCardImage(imageUrl),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
